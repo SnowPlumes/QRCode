@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="UTF-8">
+	<title>礼品卡二维码生成</title>
+	<style type="text/css">
+		.codeBox {
+			text-align: center;
+			border: 3px solid black;
+			overflow: hidden;
+			margin-bottom: 900px;
+		}
+
+		.codeName {
+			display: inline-block;
+			text-align: center;
+			margin: 15px;
+		}
+
+		img {
+			width: 140px;
+			height: 140px;
+			border: 1px solid black;
+		}
+
+		p {
+			font-size: 12px;
+		}
+
+		.clearfix:after {
+			content: "";
+			display: block;
+			visibility: hidden;
+			clear: both;
+			height: 0;
+		}
+
+		.clearfix {
+			zoom: 1;
+		}
+
+		.text {
+			margin-bottom: 60px;
+		}
+
+		textarea,
+		.storeNo {
+			display: inline-block;
+		}
+
+		#storeNo {
+			text-align: center;
+		}
+	</style>
+</head>
+
+<body>
+	<div class="text">
+		<!-- <textarea cols="100" rows="20" afterpastate></textarea>
+		<div class="storeNo">
+			<span>店号：</span>
+			<input type="number" oninput="this.value = this.value.replace(/[^\d]/g,'')">
+		</div>
+		<button onclick="getCardNum()">提交卡号并生成二维码</button> -->
+		<button onclick="listRoad()">获取</button>
+		<button onclick="save()">保存</button>
+	</div>
+	<div class="codeBox clearfix"></div>
+	<a id="download"></a>
+</body>
+
+<script type="text/javascript" src="./js/jquery.min.js"></script>
+<script type="text/javascript" src="./js/jquery.qrcode.min.js"></script>
+<script type="text/javascript" src="./js/jszip.min.js"></script>
+<script type="text/javascript" src="./js/FileSaver.js"></script>
+<script type="text/javascript">
+	let canArr = [];
+
+	function listRoad() {
+		$.ajax({
+			url: 'http://localhost:8091/highway/listRoadPile',
+			type: 'get',
+			dataType: 'json',
+			success: function (data) {
+				console.log(data)
+				let url = 'http://www.baidu.com/s?wd='
+				data.data.forEach(element => {
+					element.id = url + element.id
+				});
+				makeQR(data.data);
+			}
+		});
+	}
+
+	function makeQR(arr) {
+		if (arr) {
+			/* 思路是先根据arr.length生成对应个数的html结构,再生成对应个数的二维码 */
+			arr.reduce(function (per, current, index) {
+				var html = `<div id='code${index}' class='codeName'>
+								<h3>title：${current.direction + current.kilometre + '+' + current.metre}</h3>
+								<p>${index}</p>
+					          </div>`;
+				$(".codeBox").append(html);   //必须先生成html结构再生成二维码（顺序是重点）
+				$('#code' + index).qrcode({
+					width: 140,
+					height: 140,
+					text: current.id
+				});
+				let rqObj = {}
+				rqObj.canvas = $('#code' + index).find("canvas")[0]
+				rqObj.title = current.direction + current.kilometre + '+' + current.metre
+				canArr.push(rqObj);
+			}, 0)
+		} else {
+			alert("请输入内容！")
+		}
+	}
+
+	function save() {
+		// downLoad(saveAsPNG(canvas));
+		// $('#code1').css('display', 'block');
+
+		// var canvas = $('#code1').find("canvas")[0];
+		// try {//解决IE转base64时缓存不足，canvas转blob下载
+		// 	var blob = canvas.msToBlob();
+		// 	navigator.msSaveBlob(blob, 'qrCode.png');
+		// } catch (e) {//如果为其他浏览器，使用base64转码下载
+		// 	var url = canvas.toDataURL('image/png');
+		// 	$("#download").attr("download", 'qrCode.png')
+		// 	$("#download").attr('href', url).get(0).click();
+		// }
+		console.log(canArr);
+		getBase64Image(canArr)
+	}
+
+	function getBase64Image(arr) {
+		var zip = new JSZip()
+		var file_name = '二维码.zip'
+		let zipimg = zip.folder('二维码') 
+		for (var i = 0; i < arr.length; i++) {
+			var dataURL = arr[i].canvas.toDataURL("image/png", 1.0) // 1.0是不失真的画
+			var imgUrl = dataURL.split(',')[1] // 把生成的base64字符，删掉了image/png base64,
+			zipimg.file(arr[i].title + '.png', imgUrl, { base64: true });
+		}
+		zip.generateAsync({ type: "blob" })  // 异步去打包下载canvas
+			.then(content => {
+				saveAs(content, file_name)// savaAs的方法在JSZip的原码中没有引入，需要自己装好JSZip包后去node_modules里找到，拿出来放到自己的项目中，再引入页面中用。
+			})
+	}
+
+</script>
+
+</html>
