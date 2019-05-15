@@ -71,14 +71,14 @@
 </body>
 
 <script type="text/javascript" src="./js/jquery.min.js"></script>
-<script type="text/javascript" src="./js/jquery.qrcode.min.js"></script>
+<script type="text/javascript" src="./js/jquery-qrcode.min.js"></script>
 <script type="text/javascript" src="./js/jszip.min.js"></script>
 <script type="text/javascript" src="./js/FileSaver.js"></script>
 <script type="text/javascript">
 	let canArr = [];
 
 	function listRoad() {
-		$.ajax({
+		/* $.ajax({
 			url: 'http://localhost:8091/highway/listRoadPile',
 			type: 'get',
 			dataType: 'json',
@@ -90,7 +90,9 @@
 				});
 				makeQR(data.data);
 			}
-		});
+		});*/
+		let data = ['a','b','c'];
+		makeQR(data);
 	}
 
 	function makeQR(arr) {
@@ -103,10 +105,20 @@
 					          </div>`;
 				$(".codeBox").append(html);   //必须先生成html结构再生成二维码（顺序是重点）
 				$('#code' + index).qrcode({
-					width: 140,
-					height: 140,
-					text: current.id
+					margin: 4,
+					moduleSize: 10,
+					text: current
 				});
+				let canvas = $('#code' + index).find("canvas")[0]
+				ctx = canvas.getContext('2d');
+				// ctx.clearRect(0, 0, canvas.width, canvas.height);
+				ctx.shadowOffsetX = 1;
+				ctx.shadowOffsetY = 1;
+				ctx.shadowBlur = 1;
+				ctx.shadowColor = '#666666';
+				ctx.font = '24px Arial';
+				ctx.fillStyle = '#333333';
+				ctx.fillText('带阴影的文字', 65, 275);
 				let rqObj = {}
 				rqObj.canvas = $('#code' + index).find("canvas")[0]
 				rqObj.title = current.direction + current.kilometre + '+' + current.metre
